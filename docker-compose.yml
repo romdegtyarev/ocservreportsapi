@@ -1,0 +1,15 @@
+version: '3.8'
+
+services:
+  ocservreports:
+    build: /local/store/git/ocservreports/
+    container_name: ocservreports
+    restart: always
+    volumes:
+      - /home/myvpsadminuser/apps/ocservreports/:/data/
+    environment:
+      - TOKEN=""
+      - CHAT_ID=""
+      - DIRECTORY="/data"
+    restart: always
+
