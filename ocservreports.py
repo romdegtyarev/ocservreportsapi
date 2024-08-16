@@ -1,17 +1,16 @@
 #!/usr/bin/env python3
 import os
 import matplotlib.pyplot as plt
-from telegram import Bot
 from datetime import datetime
 import schedule
 import time
+import requests
 import logging
-import config
 
 TOKEN = os.getenv('TOKEN')
 GROUP_CHAT_ID = os.getenv('CHAT_ID')
 DIRECTORY = os.getenv('DIRECTORY')
-SCHEDULED_TASK_DELAY = 5  # Sec
+SCHEDULED_TASK_DELAY = 60  # Sec
 
 # Set the logging level for matplotlib to WARNING to suppress unnecessary messages
 matplotlib_logger = logging.getLogger('matplotlib')
@@ -19,6 +18,16 @@ matplotlib_logger.setLevel(logging.WARNING)
 logger = logging.getLogger('my_report_logging')
 data_storage = {}
 data_storage_month = {}
+
+def send_photo_to_telegram(photo_path, caption):
+    """Sends a photo to the Telegram chat."""
+    url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
+    with open(photo_path, 'rb') as photo:
+        files = {'photo': photo}
+        data = {'chat_id': GROUP_CHAT_ID, 'caption': caption}
+        response = requests.post(url, files=files, data=data)
+        if response.status_code != 200:
+            logger.error(f"Failed to send photo: {response.text}")
 
 def update_mon_logs():
     """Updates each .mon.log file with data from data_storage_month."""
@@ -55,9 +64,7 @@ def create_and_send_chart(users, outgoing_bytes, incoming_bytes):
     plt.close()
 
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    bot = Bot(token=TOKEN)
-    with open(output_file, 'rb') as photo:
-        bot.send_photo(chat_id=GROUP_CHAT_ID, photo=photo, caption=f'Report for {current_time}')
+    send_photo_to_telegram(output_file, f'Report for {current_time}')
 
 def read_data_from_files(extension, storage):
     """Reads data from files with the specified extension and stores it."""
@@ -106,17 +113,17 @@ def create_report_mon():
     global data_storage_month
 
     logger.info("create_report_mon: Start")
-
-    users = list(data_storage_month.keys())
-    outgoing_bytes = [data_storage_month[user]['outgoing'] for user in users]
-    incoming_bytes = [data_storage_month[user]['incoming'] for user in users]
-    create_and_send_chart(users, outgoing_bytes, incoming_bytes)
+    if datetime.now().day == 1:
+        users = list(data_storage_month.keys())
+        outgoing_bytes = [data_storage_month[user]['outgoing'] for user in users]
+        incoming_bytes = [data_storage_month[user]['incoming'] for user in users]
+        create_and_send_chart(users, outgoing_bytes, incoming_bytes)
 
 def scheduled_task():
     """Scheduled task."""
     logger.info("scheduled_task: Start")
-    schedule.every(5).seconds.do(create_report)
-    schedule.every(10).seconds.do(create_report_mon)
+    schedule.every().day.at("02:00").do(create_report)
+    schedule.every().day.at("02:00").do(create_report_mon)
     while True:
         logger.info("scheduled_task: while")
         schedule.run_pending()
@@ -134,7 +141,7 @@ def main():
 
     logger.setLevel(logging.DEBUG)
     logger.info("Starting BOT")
-    create_report()
+    scheduled_task()
 
 if __name__ == "__main__":
     main()

@@ -6,3 +6,4 @@
 *.jpg
 *.pdf
 .idea
+/.pydevproject

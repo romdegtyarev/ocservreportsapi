@@ -8,8 +8,8 @@ services:
     volumes:
       - /home/myvpsadminuser/apps/ocservreports/:/data/
     environment:
-      - TOKEN=""
-      - CHAT_ID=""
-      - DIRECTORY="/data"
+      - TOKEN=
+      - CHAT_ID=
+      - DIRECTORY=/data
     restart: always
 
