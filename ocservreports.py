@@ -11,7 +11,7 @@ import logging
 TOKEN = os.getenv('TOKEN')
 GROUP_CHAT_ID = os.getenv('CHAT_ID')
 DIRECTORY = os.getenv('DIRECTORY')
-SCHEDULED_TASK_DELAY = 6  # Sec
+SCHEDULED_TASK_DELAY = 60  # Sec
 
 # Set the logging level for matplotlib to WARNING to suppress unnecessary messages
 matplotlib_logger = logging.getLogger('matplotlib')
@@ -146,9 +146,9 @@ def create_report_mon():
 def scheduled_task():
     """Scheduled task."""
     logger.info("scheduled_task: Start")
-    schedule.every(10).seconds.do(create_report)
-    #schedule.every().day.at("02:00").do(create_report)
-    #schedule.every().day.at("02:00").do(create_report_mon)
+    #schedule.every(10).seconds.do(create_report)
+    schedule.every().day.at("12:00").do(create_report)
+    schedule.every().day.at("12:00").do(create_report_mon)
     while True:
         logger.info("scheduled_task: while")
         schedule.run_pending()
