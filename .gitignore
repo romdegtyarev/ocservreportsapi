@@ -7,3 +7,4 @@
 *.pdf
 .idea
 /.pydevproject
+/.env

@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 import os
 import matplotlib.pyplot as plt
+import matplotlib.cm as cm
 from datetime import datetime
 import schedule
 import time
@@ -10,7 +11,7 @@ import logging
 TOKEN = os.getenv('TOKEN')
 GROUP_CHAT_ID = os.getenv('CHAT_ID')
 DIRECTORY = os.getenv('DIRECTORY')
-SCHEDULED_TASK_DELAY = 60  # Sec
+SCHEDULED_TASK_DELAY = 6  # Sec
 
 # Set the logging level for matplotlib to WARNING to suppress unnecessary messages
 matplotlib_logger = logging.getLogger('matplotlib')
@@ -25,7 +26,7 @@ def send_photo_to_telegram(photo_path, caption):
     with open(photo_path, 'rb') as photo:
         files = {'photo': photo}
         data = {'chat_id': GROUP_CHAT_ID, 'caption': caption}
-        response = requests.post(url, files=files, data=data)
+        response = requests.post(url, data=data, files=files)
         if response.status_code != 200:
             logger.error(f"Failed to send photo: {response.text}")
 
@@ -42,19 +43,42 @@ def update_mon_logs():
 
 def create_and_send_chart(users, outgoing_bytes, incoming_bytes):
     """Creates and sends a chart of data usage."""
-    bar_width = 0.35
-    x = range(len(users))
-
-    plt.figure(figsize=(10, 5))
-    plt.bar(x, outgoing_bytes, width=bar_width, color='#D5006D', label='Outgoing')
-    plt.bar([p + bar_width for p in x], incoming_bytes, width=bar_width, color='#FFD700', label='Incoming')
 
     plt.title('Кто сколько съел')
-    plt.xlabel('Человеки')
-    plt.ylabel('Количество')
-    plt.xticks([p + bar_width / 2 for p in x], users)
-    plt.legend()
-    plt.grid(axis='y', linestyle='--', alpha=0.7)
+#    bar_width = 0.35
+#    x = range(len(users))
+
+#    plt.figure(figsize=(10, 5))
+#    plt.bar(x, outgoing_bytes, width=bar_width, color='#D5006D', label='Outgoing')
+#    plt.bar([p + bar_width for p in x], incoming_bytes, width=bar_width, color='#FFD700', label='Incoming')
+
+#    plt.xlabel('Человеки')
+#    plt.ylabel('Количество')
+#    plt.xticks([p + bar_width / 2 for p in x], users)
+#    plt.grid(axis='y', linestyle='--', alpha=0.7)
+#    plt.legend()
+
+
+    num_users = len(users)
+    colors = cm.get_cmap('rainbow', num_users)
+    step = num_users // max(len(users), 1)  # Step for selecting colors
+    selected_colors = [colors(i * step) for i in range(max(len(users), 1))]
+
+    # Create the first pie chart for outgoing traffic
+    plt.figure(figsize=(15, 12))
+
+    plt.subplot(1, 2, 1)  # First chart
+    wedges, texts, autotexts = plt.pie(outgoing_bytes, autopct='%1.1f%%', startangle=90, colors=selected_colors, textprops=dict(color="black"))
+    plt.title('User Share in Outgoing Traffic')
+    plt.axis('equal')  # To make the pie chart circular
+    plt.legend(wedges, users, title="Users", loc="lower center", ncol=1)
+
+    # Create the second pie chart for incoming traffic
+    plt.subplot(1, 2, 2)  # Second chart
+    wedges, texts, autotexts = plt.pie(incoming_bytes, autopct='%1.1f%%', startangle=90, colors=selected_colors, textprops=dict(color="black"))
+    plt.title('User Share in Incoming Traffic')
+    plt.axis('equal')  # To make the pie chart circular
+    plt.legend(wedges, users, title="Users", loc="lower center", ncol=1)
 
     if not os.path.exists(DIRECTORY):
         os.makedirs(DIRECTORY)
@@ -122,8 +146,9 @@ def create_report_mon():
 def scheduled_task():
     """Scheduled task."""
     logger.info("scheduled_task: Start")
-    schedule.every().day.at("02:00").do(create_report)
-    schedule.every().day.at("02:00").do(create_report_mon)
+    schedule.every(10).seconds.do(create_report)
+    #schedule.every().day.at("02:00").do(create_report)
+    #schedule.every().day.at("02:00").do(create_report_mon)
     while True:
         logger.info("scheduled_task: while")
         schedule.run_pending()
