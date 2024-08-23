@@ -1,9 +1,9 @@
 version: '3.8'
 
 services:
-  ocservreports:
+  ocservreportsapi:
     build: .
-    container_name: ocservreports
+    container_name: ocservreportsapi
     restart: always
     volumes:
       - ${W_DIR}:/data/
