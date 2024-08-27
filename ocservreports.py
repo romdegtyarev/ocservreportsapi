@@ -87,8 +87,18 @@ def create_and_send_chart(users, outgoing_bytes, incoming_bytes):
     plt.savefig(output_file)
     plt.close()
 
+    # Get date
     current_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
-    send_photo_to_telegram(output_file, f'Report for {current_time}')
+    # Calculate total outgoing and incoming bytes
+    total_outgoing = sum(outgoing_bytes)
+    total_incoming = sum(incoming_bytes)
+    # Convert bytes to gigabytes
+    total_outgoing_gb = total_outgoing / (1024 ** 3)
+    total_incoming_gb = total_incoming / (1024 ** 3)
+    # Log the total bytes in gigabytes
+    logger.info(f"Total Outgoing Bytes: {total_outgoing} bytes ({total_outgoing_gb:.2f} GB)")
+    logger.info(f"Total Incoming Bytes: {total_incoming} bytes ({total_incoming_gb:.2f} GB)")
+    send_photo_to_telegram(output_file, f'Report for {current_time} Outgoing Bytes: {total_outgoing_gb:.2f} GB Incoming Bytes: {total_incoming_gb:.2f} GB')
 
 def read_data_from_files(extension, storage):
     """Reads data from files with the specified extension and stores it."""
@@ -105,6 +115,9 @@ def read_data_from_files(extension, storage):
                     storage[user]['incoming'] += incoming_count
                 except ValueError:
                     logger.error(f"Error reading data from file {filename}")
+
+        with open(filename, 'w') as file:
+                file.truncate(0)
 
 def create_report():
     """Creates a report and sends it to Telegram."""
