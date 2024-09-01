@@ -43,21 +43,7 @@ def update_mon_logs():
 
 def create_and_send_chart(users, outgoing_bytes, incoming_bytes):
     """Creates and sends a chart of data usage."""
-
     plt.title('Кто сколько съел')
-#    bar_width = 0.35
-#    x = range(len(users))
-
-#    plt.figure(figsize=(10, 5))
-#    plt.bar(x, outgoing_bytes, width=bar_width, color='#D5006D', label='Outgoing')
-#    plt.bar([p + bar_width for p in x], incoming_bytes, width=bar_width, color='#FFD700', label='Incoming')
-
-#    plt.xlabel('Человеки')
-#    plt.ylabel('Количество')
-#    plt.xticks([p + bar_width / 2 for p in x], users)
-#    plt.grid(axis='y', linestyle='--', alpha=0.7)
-#    plt.legend()
-
 
     num_users = len(users)
     colors = cm.get_cmap('rainbow', num_users)
@@ -116,7 +102,8 @@ def read_data_from_files(extension, storage):
                 except ValueError:
                     logger.error(f"Error reading data from file {filename}")
 
-        with open(filename, 'w') as file:
+            # Clear the contents of the file after reading
+            with open(os.path.join(DIRECTORY, filename), 'w') as file:
                 file.truncate(0)
 
 def create_report():
@@ -145,6 +132,10 @@ def create_report():
     incoming_bytes = [data_storage[user]['incoming'] for user in users]
     create_and_send_chart(users, outgoing_bytes, incoming_bytes)
 
+    # Clear data_storage after sending report
+    data_storage.clear()
+    logger.info("Cleared data_storage after report.")
+
 def create_report_mon():
     """Creates a report and sends it to Telegram."""
     global data_storage_month
@@ -156,16 +147,22 @@ def create_report_mon():
         incoming_bytes = [data_storage_month[user]['incoming'] for user in users]
         create_and_send_chart(users, outgoing_bytes, incoming_bytes)
 
+        # Clear data_storage_month after sending report
+        data_storage_month.clear()
+        logger.info("Cleared data_storage_month after report.")
+
 def scheduled_task():
     """Scheduled task."""
     logger.info("scheduled_task: Start")
-    #schedule.every(10).seconds.do(create_report)
     schedule.every().day.at("12:00").do(create_report)
     schedule.every().day.at("12:00").do(create_report_mon)
     while True:
-        logger.info("scheduled_task: while")
-        schedule.run_pending()
-        time.sleep(SCHEDULED_TASK_DELAY)
+        try:
+            logger.info("scheduled_task: while")
+            schedule.run_pending()
+            time.sleep(SCHEDULED_TASK_DELAY)
+        except Exception as e:
+            logger.error(f"Error in scheduled task: {e}")
 
 def main():
     """Main function."""
@@ -183,3 +180,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
