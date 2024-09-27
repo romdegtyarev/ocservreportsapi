@@ -50,6 +50,9 @@ def build_message(username, reason, ip_real, ip_remote, stats_bytes_in, stats_by
         message = f"{VPSFLAG}: User: {username} connected from IP address: {ip_real}."
         return message
     elif reason != "connect":
+        if not stats_duration or not stats_bytes_in or not stats_bytes_out:
+            logger.error("One or more statistics values are empty.")
+            return
         message = f"{VPSFLAG}: Status: {reason} User: {username} IP: {ip_real} TO: {ip_remote} IN: {stats_bytes_in} OUT: {stats_bytes_out} TIME: {stats_duration}"
         return message
 
@@ -79,6 +82,9 @@ def log_to_database(username, reason, ip_real, ip_remote, stats_bytes_in, stats_
             execute_sql_command(f"INSERT INTO user_ips (username, ip_address) VALUES ('{username}', '{ip_real}');")
             logger.info(f"Added new IP address: {ip_real} for user: {username}")
     else:
+        if not stats_duration or not stats_bytes_in or not stats_bytes_out:
+            logger.error("One or more statistics values are empty.")
+            return
         disconnect_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         execute_sql_command(f"INSERT INTO user_sessions (username, disconnect_time, duration, bytes_in, bytes_out) VALUES ('{username}', '{disconnect_time}', {stats_duration}, {stats_bytes_in}, {stats_bytes_out});")
         logger.info(f"Logged session for user: {username}. Disconnect time: {disconnect_time}, Duration: {stats_duration}, Bytes in: {stats_bytes_in}, Bytes out: {stats_bytes_out}")
@@ -111,9 +117,6 @@ def main():
     stats_bytes_in = os.getenv("STATS_BYTES_IN")
     stats_bytes_out = os.getenv("STATS_BYTES_OUT")
     stats_duration = os.getenv("STATS_DURATION")
-    if not stats_duration or not stats_bytes_in or not stats_bytes_out:
-        logger.error("One or more statistics values are empty.")
-        return
 
     # Log to database
     log_to_database(username, reason, ip_real, ip_remote, stats_bytes_in, stats_bytes_out, stats_duration)
