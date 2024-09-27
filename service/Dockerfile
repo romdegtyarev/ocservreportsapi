@@ -7,7 +7,7 @@ COPY requirements.txt .
 COPY ocservreports.py .
 
 # Install dependencies for creating a virtual environment
-RUN apt-get update && apt-get install -y python3-venv
+RUN apt-get update && apt-get install -y  build-essential python3-venv libpq-dev
 
 # Create a virtual environment
 RUN python3 -m venv venv

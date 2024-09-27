@@ -1,0 +1,44 @@
+version: '3.8'
+
+services:
+  ocservreportsapi:
+    build: .
+    image: ocservreportsapi
+    container_name: ocservreportsapi
+    restart: always
+    depends_on:
+      - ocservreportsdb
+    env_file:
+      - .env
+    volumes:
+      - ${WORK_DIR}:${DIRECTORY}
+    networks:
+      - ocservnetwork
+
+  ocservreportsdb:
+    image: postgres:13
+    container_name: ocservreportsdb
+    restart: always
+    env_file:
+      - .env
+    ports:
+      - "5432:5432"
+    volumes:
+      - ocservreportsdb_data:/var/lib/postgresql/data
+    networks:
+      - ocservnetwork
+
+volumes:
+  ocservreportsdb_data:
+    driver: local
+    driver_opts:
+      type: 'none'
+      o: 'bind'
+      device: '${WORK_DIR}/ocservreportsdb_data/'
+
+
+networks:
+  ocservnetwork:
+    name: ocservnetwork
+    external: true
+
