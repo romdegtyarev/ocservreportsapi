@@ -1,6 +1,7 @@
 import os
 import psycopg2
 import requests
+import logging
 from dotenv import load_dotenv
 from datetime import datetime
 
@@ -9,18 +10,21 @@ load_dotenv()
 
 TOKEN = os.getenv('TOKEN')
 GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
+DIRECTORY = os.getenv('DIRECTORY')
 DB_HOST = os.getenv('POSTGRES_HOST')
 DB_USER = os.getenv('POSTGRES_USER')
 DB_PASSWORD = os.getenv('POSTGRES_PASSWORD')
 DB_NAME = os.getenv('POSTGRES_DB')
 VPSFLAG = os.getenv('VPSFLAG')
+
+logger = logging.getLogger('my_report_logging')
 existing_ip = None
 
 
 def handle_response(response, message_type):
     """Handles the response from the Telegram API."""
     if response.status_code != 200 or not response.json().get("ok"):
-        print(f"Failed to send {message_type}: {response.text}")
+        logger.error(f"Failed to send {message_type}: {response.text}")
 
 def send_message_to_telegram(message):
     """Sends a message to Telegram."""
@@ -41,6 +45,7 @@ def build_message(username, reason, ip_real, ip_remote, stats_bytes_in, stats_by
     """Builds a message for sending to Telegram."""
     global existing_ip
 
+    logger.info(f"DB status existing_ip: {existing_ip}.")
     if reason == "connect" and not existing_ip:
         message = f"{VPSFLAG}: User: {username} connected from IP address: {ip_real}."
         return message
@@ -69,15 +74,16 @@ def log_to_database(username, reason, ip_real, ip_remote, stats_bytes_in, stats_
 
     if reason == "connect":
         existing_ip = execute_sql_command_and_fetch(f"SELECT ip_address FROM user_ips WHERE username='{username}' AND ip_address='{ip_real}';")
+        logger.info(f"DB status existing_ip: {existing_ip}.")
         if not existing_ip:
             execute_sql_command(f"INSERT INTO user_ips (username, ip_address) VALUES ('{username}', '{ip_real}');")
-            print(f"Added new IP address: {ip_real} for user: {username}")
+            logger.info(f"Added new IP address: {ip_real} for user: {username}")
     else:
         disconnect_time = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
         execute_sql_command(f"INSERT INTO user_sessions (username, disconnect_time, duration, bytes_in, bytes_out) VALUES ('{username}', '{disconnect_time}', {stats_duration}, {stats_bytes_in}, {stats_bytes_out});")
-        print(f"Logged session for user: {username}. Disconnect time: {disconnect_time}, Duration: {stats_duration}, Bytes in: {stats_bytes_in}, Bytes out: {stats_bytes_out}")
+        logger.info(f"Logged session for user: {username}. Disconnect time: {disconnect_time}, Duration: {stats_duration}, Bytes in: {stats_bytes_in}, Bytes out: {stats_bytes_out}")
 
-    print("Logged session details to database.")
+    logger.info("Logged session details to database.")
 
 def create_tables():
     """Creates necessary tables in the database if they do not exist."""
@@ -86,6 +92,16 @@ def create_tables():
 
 def main():
     """Main function of the application."""
+    log_file_path = os.path.join(DIRECTORY, 'clientlog.app')
+    logging.basicConfig(
+        filename=log_file_path,
+        format='%(asctime)s %(message)s',
+        level=logging.DEBUG,
+        encoding='utf-8'
+    )
+    logger.setLevel(logging.DEBUG)
+    logger.info("Starting client")
+
     create_tables()
 
     username = os.getenv("USERNAME").split('_')[0]
@@ -96,7 +112,7 @@ def main():
     stats_bytes_out = os.getenv("STATS_BYTES_OUT")
     stats_duration = os.getenv("STATS_DURATION")
     if not stats_duration or not stats_bytes_in or not stats_bytes_out:
-        print("One or more statistics values are empty.")
+        logger.error("One or more statistics values are empty.")
         return
 
     # Log to database

@@ -11,7 +11,11 @@ if [ "$1" == "test" ]; then
   STATS_DURATION=$(shuf -i 1-3600 -n 1)
 fi
 
-docker run --rm --network ocservnetwork --env-file .env \
+WORK_DIR=
+PROJECT_DIR=
+DIRECTORY=
+
+docker run --rm --network ocservnetwork --env-file ${PROJECT_DIR}/.env -v ${WORK_DIR}:${DIRECTORY} \
   -e MODE=log \
   -e USERNAME=$USERNAME \
   -e REASON=$REASON \
