@@ -219,7 +219,7 @@ def create_database_if_not_exists():
 def scheduled_task():
     """Scheduled task."""
     logger.info("scheduled_task: Start")
-    logger.info(f"Current mode: {'TEST_MODE'}")
+    logger.info(f"Current mode: {TEST_MODE}")
     if TEST_MODE.lower() == "true":
         schedule.every(30).seconds.do(create_report)
         schedule.every(30).seconds.do(create_report_mon)
