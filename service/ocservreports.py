@@ -16,6 +16,7 @@ load_dotenv()
 TOKEN = os.getenv('TOKEN')
 GROUP_CHAT_ID = os.getenv('GROUP_CHAT_ID')
 SCHEDULED_TASK_DELAY = int(os.getenv('SCHEDULED_TASK_DELAY'))
+REPORT_TIME = os.getenv('REPORT_TIME', '05:00')
 DIRECTORY = os.getenv('DIRECTORY')
 DB_HOST = os.getenv('POSTGRES_HOST')
 DB_USER = os.getenv('POSTGRES_USER')
@@ -111,8 +112,8 @@ def create_and_send_chart(users, outgoing_bytes, incoming_bytes, connections, du
     logger.info(f"Total Outgoing Bytes: {total_outgoing} bytes ({total_outgoing_gb:.2f} GB)")
     logger.info(f"Total Incoming Bytes: {total_incoming} bytes ({total_incoming_gb:.2f} GB)")
     logger.info(f"Total Connections: {total_connections}")
-    logger.info(f"Total Duration: {total_duration} seconds")
-    send_photo_to_telegram(output_file, f'{VPSFLAG}: Report for {current_time} Outgoing Bytes: {total_outgoing_gb:.2f} GB Incoming Bytes: {total_incoming_gb:.2f} GB Connections: {total_connections} Duration: {total_duration} seconds')
+    logger.info(f"Total Duration: {total_duration} hours")
+    send_photo_to_telegram(output_file, f'{VPSFLAG}: Report for {current_time} Outgoing Bytes: {total_outgoing_gb:.2f} GB Incoming Bytes: {total_incoming_gb:.2f} GB Connections: {total_connections} Duration: {total_duration} hours')
 
 def read_data_from_db():
     """Reads data from the PostgreSQL database and stores it."""
@@ -122,12 +123,14 @@ def read_data_from_db():
         connection = psycopg2.connect(host=DB_HOST, database=DB_NAME, user=DB_USER, password=DB_PASSWORD)
         cursor = connection.cursor()
 
-        # Get today's date
+        # Get today's date and the previous day
         today = datetime.now().date()
-        start_of_month = today.replace(day=1)
-
-        # Read daily data
-        cursor.execute("""SELECT username, SUM(bytes_out), SUM(bytes_in), COUNT(*), SUM(duration) FROM user_sessions WHERE disconnect_time >= %s GROUP BY username """, (today,))
+        yesterday = today - timedelta(days=1)
+        # Read daily data for yesterday
+        cursor.execute("""SELECT username, SUM(bytes_out), SUM(bytes_in), COUNT(*), SUM(duration) 
+                          FROM user_sessions 
+                          WHERE disconnect_time >= %s AND disconnect_time < %s 
+                          GROUP BY username""", (yesterday, today))
         daily_data = cursor.fetchall()
         for username, outgoing_count, incoming_count, connections, duration in daily_data:
             if username not in data_storage:
@@ -135,18 +138,23 @@ def read_data_from_db():
             data_storage[username]['outgoing'] += outgoing_count
             data_storage[username]['incoming'] += incoming_count
             data_storage[username]['connections'] += connections
-            data_storage[username]['duration'] += duration
+            data_storage[username]['duration'] += duration / 3600
 
-        # Read monthly data
-        cursor.execute("""SELECT username, SUM(bytes_out), SUM(bytes_in), COUNT(*), SUM(duration) FROM user_sessions WHERE disconnect_time >= %s GROUP BY username""", (start_of_month,))
-        monthly_data = cursor.fetchall()
-        for username, outgoing_count, incoming_count, connections, duration in monthly_data:
-            if username not in data_storage_month:
-                data_storage_month[username] = {'outgoing': 0, 'incoming': 0, 'connections': 0, 'duration': 0}
-            data_storage_month[username]['outgoing'] += outgoing_count
-            data_storage_month[username]['incoming'] += incoming_count
-            data_storage_month[username]['connections'] += connections
-            data_storage_month[username]['duration'] += duration
+        if today.day == 1:
+            lastdaylastmonth = today.replace(day=1) - timedelta(days=1)
+            # Read monthly data for the previous month
+            cursor.execute("""SELECT username, SUM(bytes_out), SUM(bytes_in), COUNT(*), SUM(duration) 
+                              FROM user_sessions 
+                              WHERE disconnect_time >= %s AND disconnect_time < %s 
+                              GROUP BY username""", (lastdaylastmonth.replace(day=1), lastdaylastmonth + timedelta(days=1)))
+            monthly_data = cursor.fetchall()
+            for username, outgoing_count, incoming_count, connections, duration in monthly_data:
+                if username not in data_storage_month:
+                    data_storage_month[username] = {'outgoing': 0, 'incoming': 0, 'connections': 0, 'duration': 0}
+                data_storage_month[username]['outgoing'] += outgoing_count
+                data_storage_month[username]['incoming'] += incoming_count
+                data_storage_month[username]['connections'] += connections
+                data_storage_month[username]['duration'] += duration / 3600
 
     except Exception as e:
         logger.error(f"Error reading data from database: {e}")
@@ -157,12 +165,13 @@ def read_data_from_db():
             connection.close()
 
 def create_report():
-    """Creates a report and sends it to Telegram."""
+    """Creates a report for the previous day and sends it to Telegram."""
     global data_storage, data_storage_month
 
     logger.info("create_report: Start")
     read_data_from_db()
 
+    # Create report for yesterday
     users = list(data_storage.keys())
     outgoing_bytes = [data_storage[user]['outgoing'] for user in users]
     incoming_bytes = [data_storage[user]['incoming'] for user in users]
@@ -174,18 +183,15 @@ def create_report():
     data_storage.clear()
     logger.info("Cleared data_storage after report.")
 
-def create_report_mon():
-    """Creates a report and sends it to Telegram."""
-    global data_storage_month
-
-    logger.info("create_report_mon: Start")
+    # If today is the first day of the month, create a report for the previous month
     if datetime.now().day == 1:
-        users = list(data_storage_month.keys())
-        outgoing_bytes = [data_storage_month[user]['outgoing'] for user in users]
-        incoming_bytes = [data_storage_month[user]['incoming'] for user in users]
-        connections = [data_storage_month[user]['connections'] for user in users]
-        durations = [data_storage_month[user]['duration'] for user in users]
-        create_and_send_chart(users, outgoing_bytes, incoming_bytes, connections, durations)
+        logger.info("create_report: Generating monthly report for the previous month.")
+        users_month = list(data_storage_month.keys())
+        outgoing_bytes_month = [data_storage_month[user]['outgoing'] for user in users_month]
+        incoming_bytes_month = [data_storage_month[user]['incoming'] for user in users_month]
+        connections_month = [data_storage_month[user]['connections'] for user in users_month]
+        durations_month = [data_storage_month[user]['duration'] for user in users_month]
+        create_and_send_chart(users_month, outgoing_bytes_month, incoming_bytes_month, connections_month, durations_month)
 
         # Clear data_storage_month after sending report
         data_storage_month.clear()
@@ -224,8 +230,7 @@ def scheduled_task():
         schedule.every(30).seconds.do(create_report)
         schedule.every(30).seconds.do(create_report_mon)
     else:
-        schedule.every().day.at("12:00").do(create_report)
-        schedule.every().day.at("12:00").do(create_report_mon)
+        schedule.every().day.at(REPORT_TIME).do(create_report)
     while True:
         try:
             logger.info("scheduled_task: while")
