@@ -47,13 +47,16 @@ def build_message(username, reason, ip_real, ip_remote, stats_bytes_in, stats_by
 
     logger.info(f"DB status existing_ip: {existing_ip}.")
     if reason == "connect" and not existing_ip:
-        message = f"{VPSFLAG}: User: {username} connected from IP address: {ip_real}."
+        message = f"{VPSFLAG}: User: {username} connected from NEW IP address: {ip_real}."
         return message
     elif reason != "connect":
         if not stats_duration or not stats_bytes_in or not stats_bytes_out:
             logger.error("One or more statistics values are empty.")
             return
-        message = f"{VPSFLAG}: Status: {reason} User: {username} IP: {ip_real} TO: {ip_remote} IN: {stats_bytes_in} OUT: {stats_bytes_out} TIME: {stats_duration}"
+            total_incoming_gb = stats_bytes_in / (1024 ** 3)
+            total_outgoing_gb = stats_bytes_out / (1024 ** 3)
+            total_duration_h = stats_duration / 3600
+        message = f"{VPSFLAG}: Session has terminated for user: {username} IP: {ip_real} TO: {ip_remote} IN: {total_incoming_gb} GB OUT: {total_outgoing_gb} GB TIME: {total_duration_h} hours"
         return message
 
     return None

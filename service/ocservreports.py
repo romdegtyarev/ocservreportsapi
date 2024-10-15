@@ -87,7 +87,7 @@ def create_and_send_chart(users, outgoing_bytes, incoming_bytes, connections, du
     # Create the fourth chart for durations
     plt.subplot(2, 2, 4)  # Fourth chart
     plt.bar(users, durations, color=selected_colors)
-    plt.title('Total Duration (seconds)')
+    plt.title('Total Duration (hours)')
     plt.xlabel('Users')
     plt.ylabel('Duration (s)')
 
@@ -109,11 +109,11 @@ def create_and_send_chart(users, outgoing_bytes, incoming_bytes, connections, du
     total_outgoing_gb = total_outgoing / (1024 ** 3)
     total_incoming_gb = total_incoming / (1024 ** 3)
     # Log the total bytes in gigabytes
-    logger.info(f"Total Outgoing Bytes: {total_outgoing} bytes ({total_outgoing_gb:.2f} GB)")
-    logger.info(f"Total Incoming Bytes: {total_incoming} bytes ({total_incoming_gb:.2f} GB)")
+    logger.info(f"Total Outgoing: {total_outgoing} bytes ({total_outgoing_gb:.2f} GB)")
+    logger.info(f"Total Incoming: {total_incoming} bytes ({total_incoming_gb:.2f} GB)")
     logger.info(f"Total Connections: {total_connections}")
     logger.info(f"Total Duration: {total_duration} hours")
-    send_photo_to_telegram(output_file, f'{VPSFLAG}: Report for {current_time} Outgoing Bytes: {total_outgoing_gb:.2f} GB Incoming Bytes: {total_incoming_gb:.2f} GB Connections: {total_connections} Duration: {total_duration} hours')
+    send_photo_to_telegram(output_file, f'{VPSFLAG}: Report for {current_time} Outgoing Bytes: {total_outgoing_gb:.2f} GB Incoming Bytes: {total_incoming_gb:.2f} GB Connections: {total_connections} Duration: {total_duration.2f} hours')
 
 def read_data_from_db():
     """Reads data from the PostgreSQL database and stores it."""
