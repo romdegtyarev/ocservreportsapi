@@ -31,6 +31,7 @@ def send_message_to_telegram(message):
     if not message:
         return
 
+    logger.info(f"Send message to telegram: {message}")
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
     data = {
         "chat_id": GROUP_CHAT_ID,
@@ -52,7 +53,7 @@ def build_message(username, reason, ip_real, ip_remote, stats_bytes_in, stats_by
     elif reason != "connect":
         if not stats_duration or not stats_bytes_in or not stats_bytes_out:
             logger.error("One or more statistics values are empty.")
-            return
+            return None
         total_incoming_gb = stats_bytes_in / (1024 ** 3)
         total_outgoing_gb = stats_bytes_out / (1024 ** 3)
         total_duration_h = stats_duration / 3600
