@@ -53,9 +53,9 @@ def build_message(username, reason, ip_real, ip_remote, stats_bytes_in, stats_by
         if not stats_duration or not stats_bytes_in or not stats_bytes_out:
             logger.error("One or more statistics values are empty.")
             return
-            total_incoming_gb = stats_bytes_in / (1024 ** 3)
-            total_outgoing_gb = stats_bytes_out / (1024 ** 3)
-            total_duration_h = stats_duration / 3600
+        total_incoming_gb = stats_bytes_in / (1024 ** 3)
+        total_outgoing_gb = stats_bytes_out / (1024 ** 3)
+        total_duration_h = stats_duration / 3600
         message = f"{VPSFLAG}: Session has terminated for user: {username} IP: {ip_real} TO: {ip_remote} IN: {total_incoming_gb} GB OUT: {total_outgoing_gb} GB TIME: {total_duration_h} hours"
         return message
 
