@@ -114,7 +114,7 @@ def create_and_send_chart(users, outgoing_bytes, incoming_bytes, connections, du
     logger.info(f"Total Incoming: {total_incoming} bytes ({total_incoming_gb:.2f} GB)")
     logger.info(f"Total Connections: {total_connections}")
     logger.info(f"Total Duration: {total_duration} hours")
-    send_photo_to_telegram(output_file, f'{VPSFLAG}: Report for {current_time} Outgoing Bytes: {total_outgoing_gb:.2f} GB Incoming Bytes: {total_incoming_gb:.2f} GB Connections: {total_connections} Duration: {total_duration.2f} hours')
+    send_photo_to_telegram(output_file, f'{VPSFLAG}: Report for {current_time} Outgoing Bytes: {total_outgoing_gb:.2f} GB Incoming Bytes: {total_incoming_gb:.2f} GB Connections: {total_connections} Duration: {total_duration:.2f} hours')
 
 def read_data_from_db():
     """Reads data from the PostgreSQL database and stores it."""
