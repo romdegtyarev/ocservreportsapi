@@ -42,6 +42,7 @@ def send_photo_to_telegram(photo_path, caption):
     if TEST_MODE.lower() == "true":
         print(f"Test Mode: Would send photo: {photo_path} with caption: {caption}")
     else:
+        logger.info(f"Send message to telegram: {caption}")
         url = f"https://api.telegram.org/bot{TOKEN}/sendPhoto"
         with open(photo_path, 'rb') as photo:
             files = {'photo': photo}

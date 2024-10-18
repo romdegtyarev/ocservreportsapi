@@ -64,7 +64,7 @@ def build_message(username, reason, ip_real, ip_remote, stats_bytes_in, stats_by
         total_incoming_gb = stats_bytes_in / (1024 ** 3)
         total_outgoing_gb = stats_bytes_out / (1024 ** 3)
         total_duration_h = stats_duration / 3600
-        message = f"{VPSFLAG}: Session has terminated for user: {username} IP: {ip_real} TO: {ip_remote} IN: {total_incoming_gb} GB OUT: {total_outgoing_gb} GB TIME: {total_duration_h} hours"
+        message = f"{VPSFLAG}: Session has terminated for user: {username} IP: {ip_real} TO: {ip_remote} IN: {total_incoming_gb:.2f} GB OUT: {total_outgoing_gb:.2f} GB TIME: {total_duration_h:.2f} hours"
         return message
 
     return None
